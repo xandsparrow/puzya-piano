@@ -1,0 +1,23 @@
+[
+ {
+  "id": "polina",
+  "title": "Песенка для Полины",
+  "composer": "Пузя",
+  "bpm": 96,
+  "duration": 40
+ },
+ {
+  "id": "bach-fugue",
+  "title": "Маленькая фуга соль минор, BWV 578",
+  "composer": "И. С. Бах",
+  "bpm": 88,
+  "duration": 186
+ },
+ {
+  "id": "handel-halvorsen-passacaglia",
+  "title": "Пассакалия (черновик OMR)",
+  "composer": "Гендель — Хальворсен",
+  "bpm": 88,
+  "duration": 270
+ }
+]

@@ -2,7 +2,7 @@ const tg=window.Telegram&&Telegram.WebApp;try{tg.ready();tg.expand();tg.setHeade
 const $=id=>document.getElementById(id);
 const NAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const midi=n=>{const m=/^([A-G]#?)(\d)$/.exec(n);return NAMES.indexOf(m[1])+12*(+m[2]+1)};
-const LO=60,HI=84,COLORS=['#ff5fa2','#ffb547','#5eb5f7','#7ee787','#c084fc'];
+let LO=60,HI=84;const COLORS=['#ff5fa2','#ffb547','#5eb5f7','#7ee787','#c084fc'];
 function toast(t){const e=$('toast');e.textContent=t;e.classList.add('s');clearTimeout(toast.h);toast.h=setTimeout(()=>e.classList.remove('s'),2600)}
 // ---- melody loading
 function b64json(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(s),c=>c.charCodeAt(0))))}
@@ -30,8 +30,8 @@ function tone(m,dur,vel=1,when=0){
   o.frequency.value=f;if(timbre!=='synth')o.connect(g);o.start(t);o.stop(t+dur+1.3)}
 // ---- keyboard
 const kbd=$('kbd'),keys={};
-function buildKeys(){kbd.innerHTML='';const whites=[];for(let m=LO;m<=HI;m++)if(!NAMES[m%12].includes('#'))whites.push(m);
-  const W=kbd.clientWidth/whites.length;
+function buildKeys(){kbd.innerHTML='';for(const k in keys)delete keys[k];const whites=[];for(let m=LO;m<=HI;m++)if(!NAMES[m%12].includes('#'))whites.push(m);
+  const vw=$('scr').clientWidth,W=Math.max(vw/whites.length,22);$('inner').style.width=W*whites.length+'px';
   for(let m=LO;m<=HI;m++){const e=document.createElement('div'),n=NAMES[m%12]+(Math.floor(m/12)-1);
     if(n.includes('#')){const i=whites.filter(x=>x<m).length;e.className='b';e.style.left=(i*W-W*.32)+'px';e.style.width=W*.64+'px';e.dataset.x=i*W}
     else{const i=whites.indexOf(m);e.className='w';e.style.left=i*W+'px';e.style.width=W+'px';e.innerHTML='<span>'+n+'</span>';e.dataset.x=i*W+W/2}
@@ -50,8 +50,10 @@ let song,notes=[],mode='listen',playing=false,pos=0,lastT=0,tempo=1,waiting=null
 const spb=()=>60/song.bpm/(mode==='learn'?Math.min(tempo,.6):tempo);
 const total=()=>Math.max(...notes.map(n=>n.t+n.d));
 const fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
-function setSong(s){song=s;notes=s.notes.map((n,i)=>({...n,m:midi(n.note),i,mel:!(n.v<1)})).filter(n=>n.m>=LO&&n.m<=HI);
-  $('title').textContent=s.title||'Мелодия';$('meta').textContent='🐶 Пузя · '+s.bpm+' BPM';pos=0;updUI()}
+function setSong(s){song=s;notes=s.notes.map((n,i)=>({...n,m:midi(n.note),i,mel:!(n.v<1)})).filter(n=>n.m>=24&&n.m<=108);
+  const ms=notes.map(n=>n.m);let lo=Math.min(60,...ms),hi=Math.max(84,...ms);lo=lo-lo%12;hi=hi%12?hi+12-hi%12:hi;if(lo!==LO||hi!==HI){LO=lo;HI=hi;buildKeys()}
+  const sc=$('scr');sc.scrollLeft=(sc.scrollWidth-sc.clientWidth)/2;
+  $('title').textContent=s.title||'Мелодия';$('meta').textContent=(s.composer?s.composer:'🐶 Пузя')+' · '+s.bpm+' BPM';pos=0;updUI()}
 function updUI(){const T=total();$('progi').style.width=(pos/T*100)+'%';$('cur').textContent=fmt(pos*60/song.bpm/tempo);$('dur').textContent=fmt(T*60/song.bpm/tempo);$('play').textContent=playing?'⏸':'▶'}
 function setPlaying(p){playing=p;if(p){audio();if(pos>=total())pos=0;scheduled.clear();lastT=performance.now()}else{waiting=null;clearHints()}updUI()}
 $('play').onclick=()=>{if(mode==='free'){toast('В режиме «Свободно» играй сам 🙂');return}setPlaying(!playing)};
@@ -63,7 +65,7 @@ seg('mode',v=>{mode=v;setPlaying(false);pos=0;clearAuto();updUI();if(v==='learn'
 const autoOn=new Set();function clearAuto(){autoOn.forEach(m=>keys[m].classList.remove('on'));autoOn.clear()}
 function clearHints(){Object.values(keys).forEach(k=>k.classList.remove('hint'))}
 function onUserNote(m){if(waiting&&waiting.has(m)){waiting.delete(m);keys[m].classList.remove('hint');if(!waiting.size){waiting=null;lastT=performance.now()}}}
-const lane=$('lane');const LOOK=4;
+const lane=$("lane");const LOOK=4;
 function frame(now){
   if(playing&&!waiting){pos+=(now-lastT)/1000/spb()}lastT=now;
   if(playing){
@@ -92,4 +94,12 @@ $('send').onclick=async()=>{const d=lastRec||song,s=JSON.stringify(d);
   if(tg&&tg.initData&&tg.sendData&&tg.initDataUnsafe&&!tg.initDataUnsafe.query_id){try{tg.sendData(s.slice(0,4096));return}catch(e){}}
   try{await navigator.clipboard.writeText(s);toast('JSON мелодии скопирован — вставь его в чат Пузе')}catch(e){toast('Отправка доступна при открытии из кнопки меню бота')}};
 addEventListener('resize',buildKeys);
+let libIdx=null,curId=null;
+async function openLib(){$('lib').classList.add('s');try{if(!libIdx){const r=await fetch('melodies/index.json');libIdx=await r.json()}
+  $('liblist').innerHTML=libIdx.map(e=>'<div class="item'+(e.id===curId?' cur':'')+'" data-id="'+e.id+'"><div class=ic>'+(e.id==='polina'?'🐶':'🎼')+'</div><div style="flex:1;min-width:0"><b>'+e.title+'</b><div class=small><span>'+e.composer+'</span><span>· '+fmt(e.duration)+' · '+e.bpm+' BPM</span></div></div><span style="color:var(--acc)">▶</span></div>').join('')}
+  catch(e){$('liblist').textContent='Не удалось загрузить библиотеку'}}
+$('libbtn').onclick=openLib;$('libx').onclick=()=>$('lib').classList.remove('s');
+$('lib').onclick=e=>{if(e.target.id==='lib')$('lib').classList.remove('s')};
+$('liblist').onclick=async e=>{const it=e.target.closest('.item');if(!it)return;try{const r=await fetch('melodies/'+it.dataset.id+'.json');if(!r.ok)throw 0;
+  setPlaying(false);setSong(await r.json());curId=it.dataset.id;$('lib').classList.remove('s');if(mode==='free'){mode='listen';[...$('mode').children].forEach(c=>c.classList.toggle('a',c.dataset.v==='listen'))}setPlaying(true)}catch(_){toast('Не удалось загрузить мелодию')}};
 (async()=>{buildKeys();setSong(await loadMelody());requestAnimationFrame(frame)})();

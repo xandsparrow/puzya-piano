@@ -31,4 +31,5 @@ body{display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-botto
 .item .ic{width:40px;height:40px;border-radius:10px;background:#2b5278;display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
 .item b{display:block;font-size:15px}.item .small{justify-content:flex-start;gap:6px;margin-top:2px}.item.cur{outline:2px solid var(--acc)}
 #title{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.scr{flex:1;display:flex;overflow-x:auto;overflow-y:hidden;touch-action:pan-x;scrollbar-width:none}.scr::-webkit-scrollbar{display:none}.inner{display:flex;flex-direction:column;min-width:100%}
+.scr{flex:1;display:flex;overflow-x:auto;overflow-y:hidden;touch-action:pan-x;scrollbar-width:none}.scr::-webkit-scrollbar{display:none}.inner{display:flex;flex-direction:column;flex:none;min-width:100%;height:100%}
+.inner>.lane,.inner>.kbd{width:100%;flex-shrink:0}.inner>.lane{flex:1 1 auto}

@@ -31,7 +31,7 @@ function tone(m,dur,vel=1,when=0){
 // ---- keyboard
 const kbd=$('kbd'),keys={};
 function buildKeys(){kbd.innerHTML='';for(const k in keys)delete keys[k];const whites=[];for(let m=LO;m<=HI;m++)if(!NAMES[m%12].includes('#'))whites.push(m);
-  const vw=$('scr').clientWidth,W=Math.max(vw/whites.length,22);$('inner').style.width=W*whites.length+'px';
+  const vw=$('scr').clientWidth,W=Math.max(vw/whites.length,22);const TW=W*whites.length+'px';$('inner').style.width=TW;$('inner').style.minWidth=TW;$('lane').style.width=TW;kbd.style.width=TW;
   for(let m=LO;m<=HI;m++){const e=document.createElement('div'),n=NAMES[m%12]+(Math.floor(m/12)-1);
     if(n.includes('#')){const i=whites.filter(x=>x<m).length;e.className='b';e.style.left=(i*W-W*.32)+'px';e.style.width=W*.64+'px';e.dataset.x=i*W}
     else{const i=whites.indexOf(m);e.className='w';e.style.left=i*W+'px';e.style.width=W+'px';e.innerHTML='<span>'+n+'</span>';e.dataset.x=i*W+W/2}
@@ -93,7 +93,7 @@ $('rec').onclick=()=>{recording=!recording;$('rec').classList.toggle('recon',rec
 $('send').onclick=async()=>{const d=lastRec||song,s=JSON.stringify(d);
   if(tg&&tg.initData&&tg.sendData&&tg.initDataUnsafe&&!tg.initDataUnsafe.query_id){try{tg.sendData(s.slice(0,4096));return}catch(e){}}
   try{await navigator.clipboard.writeText(s);toast('JSON мелодии скопирован — вставь его в чат Пузе')}catch(e){toast('Отправка доступна при открытии из кнопки меню бота')}};
-addEventListener('resize',buildKeys);
+let rzT;const onRz=()=>{clearTimeout(rzT);rzT=setTimeout(()=>{const sc=$('scr'),f=sc.scrollWidth>sc.clientWidth?sc.scrollLeft/(sc.scrollWidth-sc.clientWidth):.5;buildKeys();sc.scrollLeft=f*(sc.scrollWidth-sc.clientWidth)},60)};addEventListener('resize',onRz);addEventListener('orientationchange',onRz);try{tg&&tg.onEvent&&tg.onEvent('viewportChanged',onRz)}catch(e){}
 let libIdx=null,curId=null;
 async function openLib(){$('lib').classList.add('s');try{if(!libIdx){const r=await fetch('melodies/index.json');libIdx=await r.json()}
   $('liblist').innerHTML=libIdx.map(e=>'<div class="item'+(e.id===curId?' cur':'')+'" data-id="'+e.id+'"><div class=ic>'+(e.id==='polina'?'🐶':'🎼')+'</div><div style="flex:1;min-width:0"><b>'+e.title+'</b><div class=small><span>'+e.composer+'</span><span>· '+fmt(e.duration)+' · '+e.bpm+' BPM</span></div></div><span style="color:var(--acc)">▶</span></div>').join('')}

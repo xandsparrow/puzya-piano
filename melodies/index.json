@@ -19,5 +19,12 @@
   "composer": "Гендель — Хальворсен",
   "bpm": 88,
   "duration": 270
+ },
+ {
+  "id": "bach-toccata-fugue",
+  "title": "Токката и фуга ре минор, BWV 565",
+  "composer": "И. С. Бах",
+  "bpm": 80,
+  "duration": 572
  }
 ]

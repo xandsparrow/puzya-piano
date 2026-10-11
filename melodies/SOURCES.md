@@ -18,3 +18,11 @@
 
 ## polina.json — «Песенка для Полины»
 - Оригинальная мелодия Пузи.
+
+## bach-toccata-fugue.json — И. С. Бах, Токката и фуга ре минор BWV 565 (целиком)
+- Композиция: общественное достояние.
+- Кодировка: MIDI Mutopia Project #1780 (Mutopia-2011/09/11-1780), по изданию Bach-Gesellschaft Ausgabe, 1867
+  (https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=1780).
+- Лицензия: Public Domain (https://creativecommons.org/licenses/publicdomain).
+- Изменения: конвертировано в JSON «Пузя Piano» (3651 нота, мануалы + педаль), время в долях при 80 BPM
+  с сохранением темповых изменений оригинала. Длительность ≈ 9:32.

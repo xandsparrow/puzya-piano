@@ -1,19 +1,19 @@
 // Пузя Ран — endless 3-lane runner, pseudo-3D on canvas 2D. Original blocky character (no third-party assets).
 (()=>{
 const cv=document.getElementById('gcv'),cx=cv.getContext('2d'),ov=document.getElementById('gover');
-const LS='pzRunBest',ZP=2.2,FAR=60,LW=1.5;
+const V0=5.6,VMAX=24,LS='pzRunBest',ZP=2.2,FAR=60,LW=1.5;
 let W=0,H=0,dpr=1,active=false,raf=0,last=0;
-const S={st:'idle',x:0,lane:0,y:0,vy:0,z:0,v:9,score:0,best:+(localStorage.getItem(LS)||0),obs:[],nextZ:20,t:0,music:true,shake:0};
+const S={st:'idle',x:0,lane:0,y:0,vy:0,z:0,v:5.6,score:0,best:+(localStorage.getItem(LS)||0),obs:[],nextZ:20,t:0,music:true,shake:0};
 function size(){dpr=Math.min(window.devicePixelRatio||1,3);const r=cv.getBoundingClientRect();W=Math.max(1,r.width);H=Math.max(1,r.height);
   cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);cx.setTransform(dpr,0,0,dpr,0,0)}
 addEventListener('resize',()=>active&&size());
 // projection: camera behind & above the player
-const camH=2.3,camZ=-1.2;
-function proj(X,Y,Z){const dz=Math.max(.05,Z-S.z-camZ),f=H*.95/dz,hor=H*.30;return{x:W/2+(X-S.x*.35)*f,y:hor+(camH-Y)*f*.62,f}}
+const camH=3.6,camZ=-1.4;
+function proj(X,Y,Z){const dz=Math.max(.05,Z-S.z-camZ),f=H*.62/dz,hor=H*.14;return{x:W/2+(X-S.x*.6)*f,y:hor+(camH-Y)*f*.9,f}}
 function haptic(t){try{const h=Telegram.WebApp.HapticFeedback;t==='err'?h.notificationOccurred('error'):h.impactOccurred(t||'light')}catch(e){}}
 function beep(f,d,type){try{const a=audio(),o=a.createOscillator(),g=a.createGain();o.type=type||'square';o.frequency.setValueAtTime(f,a.currentTime);o.frequency.exponentialRampToValueAtTime(f*2,a.currentTime+d);
   g.gain.setValueAtTime(.15,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+d);o.connect(g);g.connect(master);o.start();o.stop(a.currentTime+d)}catch(e){}}
-function reset(){Object.assign(S,{st:'run',x:0,lane:0,y:0,vy:0,z:0,v:9,score:0,obs:[],nextZ:22,t:0,shake:0});ov.classList.add('h')}
+function reset(){Object.assign(S,{st:'run',x:0,lane:0,y:0,vy:0,z:0,v:5.6,score:0,obs:[],nextZ:22,t:0,shake:0});ov.classList.add('h')}
 function spawn(){while(S.nextZ<S.z+FAR){const z=S.nextZ,r=Math.random();
     if(r<.35){const free=Math.floor(Math.random()*3)-1;[-1,0,1].forEach(l=>{if(l!==free&&Math.random()<.75)S.obs.push({t:'pillar',l,z})})}
     else if(r<.68){const l=Math.floor(Math.random()*3)-1;S.obs.push({t:'hole',l,z});if(Math.random()<.4)S.obs.push({t:'hole',l:l?0:1,z})}
@@ -30,7 +30,7 @@ function over(o){S.st='over';S.overAt=performance.now();S.shake=.35;haptic('err'
   document.getElementById('gotitle').textContent=o.t==='hole'?'Упал в яму!':o.t==='bar'?'Споткнулся!':'Бум! Столб!';
   document.getElementById('gotext').textContent='Счёт: '+sc+' м   Рекорд: '+S.best+' м'+nb;document.getElementById('gstart').textContent='↻ Ещё раз';ov.classList.remove('h')}
 function step(dt){S.t+=dt;if(S.shake>0)S.shake-=dt;if(S.st!=='run')return;
-  S.v=Math.min(26,9+S.t*.18);S.z+=S.v*dt;S.score+=S.v*dt;
+  S.v=V0+(VMAX-V0)*(1-Math.cos(Math.PI*Math.min(1,S.t/170)))/2;S.z+=S.v*dt;S.score+=S.v*dt;
   S.x+=(S.lane-S.x)*Math.min(1,dt*14);
   S.vy-=24*dt;S.y=Math.max(0,S.y+S.vy*dt);if(S.y===0)S.vy=Math.max(0,S.vy);
   spawn();S.obs=S.obs.filter(o=>o.z>S.z-2);
@@ -44,7 +44,7 @@ function box(X,Y,Z,w,h,dep,top,front,side){// axis box: centre X, bottom Y, near
   if(fl.x>W/2)quad(fl,tl,bl,sl,side);if(fr.x<W/2)quad(fr,tr,br,sr,side);
   quad(fl,fr,tr,tl,front)}
 function drawWorld(){
-  const hor=H*.30,g=cx.createLinearGradient(0,0,0,hor);g.addColorStop(0,'#5fb4ff');g.addColorStop(1,'#cfeaff');cx.fillStyle=g;cx.fillRect(0,0,W,hor+1);
+  const hor=H*.14,g=cx.createLinearGradient(0,0,0,hor);g.addColorStop(0,'#5fb4ff');g.addColorStop(1,'#cfeaff');cx.fillStyle=g;cx.fillRect(0,0,W,hor+1);
   cx.fillStyle='#fff8';for(let i=0;i<4;i++){const x=((i*137+S.t*6)%(W+120))-60;cx.beginPath();cx.ellipse(x,hor*.35+i*14,40,12,0,0,7);cx.fill()}
   cx.fillStyle='#57b04a';cx.fillRect(0,hor,W,H-hor);
   const zn=S.z+camZ+.25,zf=S.z+FAR,a=proj(-LW*1.5-.2,0,zn),b=proj(LW*1.5+.2,0,zn),c=proj(LW*1.5+.2,0,zf),d=proj(-LW*1.5-.2,0,zf);quad(a,b,c,d,'#8a6a4a');
@@ -55,7 +55,7 @@ function drawWorld(){
 function drawObs(o){const X=o.l*LW;
   if(o.t==='hole'){const a=proj(X-.7,0,o.z),b=proj(X+.7,0,o.z),c=proj(X+.7,0,o.z+1.4),d=proj(X-.7,0,o.z+1.4);quad(a,b,c,d,'#1a120c');const e=proj(X-.7,-.4,o.z+1.4),f=proj(X+.7,-.4,o.z+1.4);quad(d,c,f,e,'#3b2a1c')}
   else if(o.t==='bar')box(X,0,o.z,1.3,.5,.3,'#ffd84d','#ff9f1c','#d97a00');
-  else box(X,0,o.z,1.0,2.6,.9,'#bfc6d1','#8d97a6','#6b7482')}
+  else{const dz=o.z-(S.z+ZP);cx.globalAlpha=1;if(dz>0&&dz<7)cx.globalAlpha=.4+.6*Math.min(1,Math.max(0,(dz-1)/6));box(X,0,o.z,.8,2.2,.8,'#bfc6d1','#8d97a6','#6b7482');cx.globalAlpha=1}}
 function drawHero(){const X=S.x*LW,Z=S.z+ZP,run=S.st==='run'&&S.y===0,ph=Math.sin(S.t*S.v*.9)*(run?1:.15),Y=S.y;
   const sh=proj(X,0,Z);cx.fillStyle='#0004';cx.beginPath();cx.ellipse(sh.x,sh.y,sh.f*.38*(1-Math.min(.5,Y*.2)),sh.f*.08,0,0,7);cx.fill();
   const leg=(dx,s)=>box(X+dx,Y+Math.max(0,s)*.12,Z+s*.12,.24,.62,.24,'#3fae3f','#2e8b2e','#256f25');

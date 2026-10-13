@@ -34,8 +34,8 @@ body{display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-botto
 .scr{flex:1;display:flex;overflow-x:auto;overflow-y:hidden;touch-action:pan-x;scrollbar-width:none}.scr::-webkit-scrollbar{display:none}.inner{display:flex;flex-direction:column;flex:none;min-width:100%;height:100%}
 .inner>.lane,.inner>.kbd{width:100%;flex-shrink:0}.inner>.lane{flex:1 1 auto}
 
-.gwrap,.swrap,.hub{display:none;flex:1;flex-direction:column;position:relative;min-height:0;touch-action:none}
-body.game .gwrap,body.space .swrap,body.hub .hub{display:flex}
+.gwrap,.swrap,#hub{display:none;flex:1;flex-direction:column;position:relative;min-height:0;touch-action:none}
+body.game .gwrap,body.space .swrap,body.hub #hub{display:flex}
 body.game .scr,body.game .bot,body.game .prog,body.game .panel>.small,body.game #timbre,
 body.space .scr,body.space .bot,body.space .prog,body.space .panel>.small,body.space #timbre,
 body.hub .scr,body.hub .bot,body.hub .prog,body.hub .panel>.small,body.hub #timbre{display:none}
@@ -46,7 +46,7 @@ body.hub .scr,body.hub .bot,body.hub .prog,body.hub .panel>.small,body.hub #timb
 .gover b{font-size:22px;display:block;margin-bottom:6px}.gover div{font-size:14px;color:#cfd8e3;margin-bottom:14px;white-space:pre-line;line-height:1.4}
 .gover button{border:0;border-radius:12px;padding:12px 26px;background:linear-gradient(135deg,#00d2ff,#3a7bd5);color:#fff;font-size:17px;font-weight:700;box-shadow:0 0 18px rgba(0,210,255,.45)}.gover.h{display:none}
 
-.hub{padding:4px 10px 12px;overflow-y:auto;touch-action:pan-y}
+#hub{padding:4px 10px 12px;overflow-y:auto;touch-action:pan-y}
 .hubhdr{display:flex;justify-content:space-between;align-items:baseline;padding:2px 4px 10px}
 .hubhdr b{font-size:18px}.hubhdr span{font-size:12px;color:var(--hint)}
 .hublist{display:flex;flex-direction:column;gap:10px}

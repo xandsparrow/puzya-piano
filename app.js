@@ -46,7 +46,7 @@ kbd.addEventListener('pointermove',e=>{if(!down.has(e.pointerId))return;const k=
 const up=e=>{if(down.has(e.pointerId)){releaseUser(down.get(e.pointerId));down.delete(e.pointerId)}};
 ['pointerup','pointercancel','pointerleave'].forEach(t=>kbd.addEventListener(t,up));
 // ---- player
-let song,notes=[],mode='listen',playing=false,pos=0,lastT=0,tempo=1,waiting=null,scheduled=new Set();
+let song,notes=[],mode='listen',lastPianoMode='listen',playing=false,pos=0,lastT=0,tempo=1,waiting=null,scheduled=new Set();
 const spb=()=>60/song.bpm/(mode==='learn'?Math.min(tempo,.6):tempo);
 const total=()=>Math.max(...notes.map(n=>n.t+n.d));
 const fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
@@ -56,30 +56,86 @@ function setSong(s){song=s;notes=s.notes.map((n,i)=>({...n,m:midi(n.note),i,mel:
   $('title').textContent=s.title||'Мелодия';$('meta').textContent=(s.composer?s.composer:'🐶 Пузя')+' · '+s.bpm+' BPM';pos=0;updUI()}
 function updUI(){const T=total();$('progi').style.width=(pos/T*100)+'%';$('cur').textContent=fmt(pos*60/song.bpm/tempo);$('dur').textContent=fmt(T*60/song.bpm/tempo);$('play').textContent=playing?'⏸':'▶'}
 function setPlaying(p){playing=p;if(p){audio();if(pos>=total())pos=0;scheduled.clear();lastT=performance.now()}else{waiting=null;clearHints()}updUI()}
-$('play').onclick=()=>{if(mode==='game'){window.PZG&&PZG.toggleMusic();return}if(mode==='free'){toast('В режиме «Свободно» играй сам 🙂');return}setPlaying(!playing)};
+$('play').onclick=()=>{if(mode==='game'){window.PZG&&PZG.toggleMusic();return}if(mode==='space'){window.PZS&&PZS.toggleMusic();return}if(mode==='free'){toast('В режиме «Свободно» играй сам 🙂');return}setPlaying(!playing)};
 $('prog').onpointerdown=e=>{const r=e.currentTarget.getBoundingClientRect();pos=(e.clientX-r.left)/r.width*total();scheduled.clear();waiting=null;clearHints();updUI()};
 $('tempo').oninput=e=>{tempo=e.target.value/100;$('tv').textContent=e.target.value+'%';updUI()};
 function seg(id,cb){$(id).onclick=e=>{const d=e.target.closest('[data-v]');if(!d)return;[...$(id).children].forEach(c=>c.classList.toggle('a',c===d));cb(d.dataset.v)}}
 seg('timbre',v=>{timbre=v;tone(72,.3)});
-seg('mode',v=>{const wasG=mode==='game';mode=v;document.body.classList.toggle('game',v==='game');if(v==='game'){window.PZG&&PZG.enter()}else if(wasG){window.PZG&&PZG.leave();setTimeout(onRz,30)}setPlaying(false);pos=0;clearAuto();updUI();if(v==='learn')toast('Нажимай подсвеченные клавиши — я подожду 🐾')});
+function updHubScores(){
+  const br=$('hubBestRun'),bs=$('hubBestSpace');
+  if(br)br.textContent='🏆 Рекорд: '+(localStorage.getItem('pzRunBest')||0)+' м';
+  if(bs)bs.textContent='🏆 Рекорд: '+(localStorage.getItem('pzSpaceBest')||0);
+}
+function leaveAllGames(){
+  window.PZG&&PZG.leave();
+  window.PZS&&PZS.leave();
+  document.body.classList.remove('game','space','hub');
+}
+function openHub(){
+  leaveAllGames();
+  mode='games';
+  document.body.classList.add('hub');
+  [...$('mode').children].forEach(c=>c.classList.toggle('a',c.dataset.v==='games'));
+  updHubScores();
+  setPlaying(false);pos=0;clearAuto();updUI();
+}
+function openGame(g){
+  if(g==='piano'){
+    const target=lastPianoMode||'listen';
+    leaveAllGames();
+    mode=target;
+    [...$('mode').children].forEach(c=>c.classList.toggle('a',c.dataset.v===target));
+    setPlaying(false);pos=0;clearAuto();updUI();
+    setTimeout(onRz,30);
+    return;
+  }
+  leaveAllGames();
+  [...$('mode').children].forEach(c=>c.classList.toggle('a',c.dataset.v==='games'));
+  setPlaying(false);pos=0;clearAuto();updUI();
+  if(g==='run'){
+    mode='game';
+    document.body.classList.add('game');
+    window.PZG&&PZG.enter();
+  }else if(g==='space'){
+    mode='space';
+    document.body.classList.add('space');
+    window.PZS&&PZS.enter();
+  }
+}
+seg('mode',v=>{
+  if(v==='games'||v==='game'){
+    openHub();
+    return;
+  }
+  const wasInGameOrHub=mode==='game'||mode==='space'||mode==='games';
+  lastPianoMode=v;
+  leaveAllGames();
+  mode=v;
+  if(wasInGameOrHub)setTimeout(onRz,30);
+  setPlaying(false);pos=0;clearAuto();updUI();
+  if(v==='learn')toast('Нажимай подсвеченные клавиши — я подожду 🐾');
+});
+$('hub').onclick=e=>{const card=e.target.closest('[data-game]');if(card)openGame(card.dataset.game)};
+document.querySelectorAll('[data-back="hub"]').forEach(b=>b.onclick=()=>openHub());
 const autoOn=new Set();function clearAuto(){autoOn.forEach(m=>keys[m].classList.remove('on'));autoOn.clear()}
 function clearHints(){Object.values(keys).forEach(k=>k.classList.remove('hint'))}
 function onUserNote(m){if(waiting&&waiting.has(m)){waiting.delete(m);keys[m].classList.remove('hint');if(!waiting.size){waiting=null;lastT=performance.now()}}}
 const lane=$("lane");const LOOK=4;
 function frame(now){
   if(playing&&!waiting){pos+=(now-lastT)/1000/spb()}lastT=now;
+  const inGameMusic=mode==='game'||mode==='space'||mode==='games';
   if(playing){
     if(mode==='learn'&&!waiting){const due=notes.filter(n=>n.mel&&!scheduled.has(n.i)&&n.t<=pos);if(due.length){pos=due[0].t;waiting=new Set();notes.filter(n=>n.mel&&Math.abs(n.t-pos)<1e-6).forEach(n=>{scheduled.add(n.i);waiting.add(n.m);keys[n.m].classList.add('hint')})}
       notes.filter(n=>!n.mel&&!scheduled.has(n.i)&&n.t<=pos).forEach(n=>{scheduled.add(n.i);tone(n.m,n.d*spb(),.35)})}
-    if(mode==='listen'||mode==='game'){notes.filter(n=>!scheduled.has(n.i)&&n.t<=pos).forEach(n=>{scheduled.add(n.i);if(pos-n.t<.25)tone(n.m,n.d*spb(),n.v??1)})}
-    if(pos>=total()&&mode==='game'){pos=0;scheduled.clear()}
+    if(mode==='listen'||inGameMusic){notes.filter(n=>!scheduled.has(n.i)&&n.t<=pos).forEach(n=>{scheduled.add(n.i);if(pos-n.t<.25)tone(n.m,n.d*spb(),n.v??1)})}
+    if(pos>=total()&&inGameMusic){pos=0;scheduled.clear()}
     if(pos>=total()){setPlaying(false);pos=total();toast(mode==='learn'?'Браво! 🎉 Мелодия выучена':'Конец 🎶')}
   }
   // highlight & lane
   if(mode==='listen'){const act=new Set(notes.filter(n=>n.t<=pos&&pos<n.t+n.d&&playing).map(n=>n.m));
     autoOn.forEach(m=>{if(!act.has(m)){keys[m].classList.remove('on');autoOn.delete(m)}});act.forEach(m=>{keys[m].classList.add('on');autoOn.add(m)})}
   const H=lane.clientHeight,px=H/LOOK;let html='';
-  if(mode!=='free'&&mode!=='game')for(const n of notes){if(n.t+n.d<pos||n.t>pos+LOOK)continue;const k=keys[n.m],bk=k.classList.contains('b'),w=bk?keyW*.55:keyW-6,
+  if(mode!=='free'&&mode!=='game'&&mode!=='space'&&mode!=='games')for(const n of notes){if(n.t+n.d<pos||n.t>pos+LOOK)continue;const k=keys[n.m],bk=k.classList.contains('b'),w=bk?keyW*.55:keyW-6,
     x=(+k.dataset.x)-w/2,bot=(n.t-pos)*px,h=n.d*px,c=COLORS[n.m%5];
     html+='<div class=bar style="left:'+x+'px;width:'+w+'px;bottom:'+bot+'px;height:'+h+'px;background:'+c+';box-shadow:0 0 10px '+c+(n.mel?'':';opacity:.35')+'"></div>'}
   let bars=lane.querySelector('.bars');if(!bars){bars=document.createElement('div');bars.className='bars';lane.appendChild(bars)}bars.innerHTML=html;

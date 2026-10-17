@@ -170,12 +170,8 @@ function sfxHit() {
 
 function music(on) {
   try {
-    if (on) {
-      if (typeof timbre !== 'undefined') timbre = 'synth';
-      if (typeof playing !== 'undefined' && !playing && typeof setPlaying === 'function') setPlaying(true);
-    } else if (typeof playing !== 'undefined' && playing && typeof setPlaying === 'function') {
-      setPlaying(false);
-    }
+    if (typeof bgm67 === 'function') bgm67(on);
+    else if (typeof window !== 'undefined' && window.bgm67) window.bgm67(on);
   } catch (e) {}
 }
 

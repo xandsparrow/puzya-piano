@@ -28,6 +28,109 @@ function tone(m,dur,vel=1,when=0){
     g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v*.5,t+.03);g.gain.setValueAtTime(v*.4,t+dur);g.gain.exponentialRampToValueAtTime(.0001,t+dur+.4)}
   else{o.type='square';g.gain.setValueAtTime(v*.3,t);g.gain.setValueAtTime(v*.3,t+dur);g.gain.linearRampToValueAtTime(0,t+dur+.03)}
   o.frequency.value=f;if(timbre!=='synth')o.connect(g);o.start(t);o.stop(t+dur+1.3)}
+// ---- 67 phonk BGM (game modes)
+let bgmTimer=null,bgmPlaying=false,bgmGain=null,noiseBuf=null;
+function getNoise(a){
+  if(!noiseBuf||noiseBuf.context!==a){
+    noiseBuf=a.createBuffer(1,Math.floor(a.sampleRate*0.5),a.sampleRate);
+    const d=noiseBuf.getChannelData(0);
+    for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+  }
+  return noiseBuf;
+}
+function bgmKick(a,t,out){
+  const o=a.createOscillator(),g=a.createGain();o.type='sine';
+  o.frequency.setValueAtTime(160,t);o.frequency.exponentialRampToValueAtTime(42,t+.055);o.frequency.setValueAtTime(38,t+.18);
+  g.gain.setValueAtTime(.8,t);g.gain.exponentialRampToValueAtTime(.001,t+.2);
+  o.connect(g);g.connect(out);o.start(t);o.stop(t+.22);
+}
+function bgmSnare(a,t,out){
+  const src=a.createBufferSource();src.buffer=getNoise(a);
+  const fl=a.createBiquadFilter();fl.type='bandpass';fl.frequency.setValueAtTime(2000,t);fl.Q.setValueAtTime(1.8,t);
+  const g=a.createGain();g.gain.setValueAtTime(.4,t);g.gain.exponentialRampToValueAtTime(.001,t+.14);
+  src.connect(fl);fl.connect(g);g.connect(out);src.start(t);src.stop(t+.15);
+  const o=a.createOscillator(),og=a.createGain();o.type='triangle';
+  o.frequency.setValueAtTime(220,t);o.frequency.exponentialRampToValueAtTime(90,t+.05);
+  og.gain.setValueAtTime(.28,t);og.gain.exponentialRampToValueAtTime(.001,t+.07);
+  o.connect(og);og.connect(out);o.start(t);o.stop(t+.08);
+}
+function bgmHat(a,t,out,v=.12){
+  const src=a.createBufferSource();src.buffer=getNoise(a);
+  const hp=a.createBiquadFilter();hp.type='highpass';hp.frequency.setValueAtTime(8000,t);
+  const g=a.createGain();g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+.04);
+  src.connect(hp);hp.connect(g);g.connect(out);src.start(t);src.stop(t+.045);
+}
+function bgmCowbell(a,t,f,out){
+  const o1=a.createOscillator(),o2=a.createOscillator();
+  o1.type='square';o2.type='square';
+  o1.frequency.setValueAtTime(f,t);o2.frequency.setValueAtTime(f*1.481,t);
+  const bp=a.createBiquadFilter();bp.type='bandpass';bp.frequency.setValueAtTime(f*1.35,t);bp.Q.setValueAtTime(3.8,t);
+  const hp=a.createBiquadFilter();hp.type='highpass';hp.frequency.setValueAtTime(500,t);
+  const g=a.createGain();g.gain.setValueAtTime(.36,t);g.gain.exponentialRampToValueAtTime(.001,t+.22);
+  o1.connect(bp);o2.connect(bp);bp.connect(hp);hp.connect(g);g.connect(out);
+  o1.start(t);o2.start(t);o1.stop(t+.24);o2.stop(t+.24);
+}
+function bgmBass(a,t,dur,f,out){
+  const o=a.createOscillator(),g=a.createGain(),lp=a.createBiquadFilter();
+  o.type='sawtooth';o.frequency.setValueAtTime(f,t);
+  lp.type='lowpass';lp.frequency.setValueAtTime(180,t);lp.frequency.linearRampToValueAtTime(120,t+dur);
+  g.gain.setValueAtTime(.001,t);g.gain.linearRampToValueAtTime(.42,t+.02);g.gain.setValueAtTime(.35,t+dur*.7);
+  g.gain.exponentialRampToValueAtTime(.001,t+dur);
+  o.connect(lp);lp.connect(g);g.connect(out);o.start(t);o.stop(t+dur+.02);
+}
+const KICKS_67=new Set([0,6,10,14,16,24,27,32,38,42,46,48,52,56,59,62]);
+const SNARES_67=new Set([4,12,20,28,36,44,52,60,63]);
+const ROLLS_67=new Set([11,27,43,58,59,61,62]);
+const BASS_67={0:[41.2,6],8:[41.2,6],16:[65.41,6],24:[73.42,6],32:[41.2,6],40:[48.99,6],48:[65.41,5],54:[73.42,5],60:[82.41,4]};
+const BELL_67={
+  0:659.25,3:659.25,6:783.99,8:987.77,10:1046.5,12:1046.5,14:1174.66,
+  16:1174.66,18:1318.51,20:1174.66,22:1046.5,24:987.77,26:1046.5,28:1174.66,30:1318.51,
+  32:659.25,34:659.25,36:783.99,38:987.77,40:1046.5,42:1046.5,44:1174.66,46:1174.66,
+  48:1046.5,50:1046.5,52:1174.66,54:1174.66,56:1318.51,58:1174.66,60:1046.5,62:1174.66
+};
+function bgm67(on){
+  if(!on){
+    bgmPlaying=false;
+    if(bgmTimer){clearInterval(bgmTimer);bgmTimer=null}
+    if(bgmGain&&ac){
+      try{
+        bgmGain.gain.setValueAtTime(bgmGain.gain.value,ac.currentTime);
+        bgmGain.gain.linearRampToValueAtTime(0,ac.currentTime+.05);
+      }catch(e){}
+    }
+    return;
+  }
+  const a=audio();
+  if(bgmPlaying)return;
+  bgmPlaying=true;
+  if(!bgmGain){bgmGain=a.createGain();bgmGain.connect(master||a.destination)}
+  bgmGain.gain.cancelScheduledValues(a.currentTime);
+  bgmGain.gain.setValueAtTime(.38,a.currentTime);
+  const STEP=60/(132*4);
+  let curStep=0,nextT=a.currentTime+.03;
+  function schedule(){
+    if(!bgmPlaying)return;
+    const now=a.currentTime;
+    if(nextT<now)nextT=now+.01;
+    while(nextT<now+.16){
+      const t=nextT,st=curStep;
+      if(KICKS_67.has(st))bgmKick(a,t,bgmGain);
+      if(SNARES_67.has(st))bgmSnare(a,t,bgmGain);
+      if(st%2===0||ROLLS_67.has(st)){
+        const acc=st===6||st===22||st===38||st===54;
+        bgmHat(a,t,bgmGain,acc?.22:.12);
+      }
+      if(BASS_67[st]){const[f,dSteps]=BASS_67[st];bgmBass(a,t,dSteps*STEP,f,bgmGain)}
+      if(BELL_67[st])bgmCowbell(a,t,BELL_67[st],bgmGain);
+      curStep=(curStep+1)%64;
+      nextT+=STEP;
+    }
+  }
+  schedule();
+  if(bgmTimer)clearInterval(bgmTimer);
+  bgmTimer=setInterval(schedule,30);
+}
+window.bgm67=bgm67;
 // ---- keyboard
 const kbd=$('kbd'),keys={};
 function buildKeys(){kbd.innerHTML='';for(const k in keys)delete keys[k];const whites=[];for(let m=LO;m<=HI;m++)if(!NAMES[m%12].includes('#'))whites.push(m);
@@ -69,6 +172,7 @@ function updHubScores(){
 function leaveAllGames(){
   window.PZG&&PZG.leave();
   window.PZS&&PZS.leave();
+  bgm67(false);
   document.body.classList.remove('game','space','hub');
 }
 function openHub(){
@@ -123,12 +227,10 @@ function onUserNote(m){if(waiting&&waiting.has(m)){waiting.delete(m);keys[m].cla
 const lane=$("lane");const LOOK=4;
 function frame(now){
   if(playing&&!waiting){pos+=(now-lastT)/1000/spb()}lastT=now;
-  const inGameMusic=mode==='game'||mode==='space'||mode==='games';
   if(playing){
     if(mode==='learn'&&!waiting){const due=notes.filter(n=>n.mel&&!scheduled.has(n.i)&&n.t<=pos);if(due.length){pos=due[0].t;waiting=new Set();notes.filter(n=>n.mel&&Math.abs(n.t-pos)<1e-6).forEach(n=>{scheduled.add(n.i);waiting.add(n.m);keys[n.m].classList.add('hint')})}
       notes.filter(n=>!n.mel&&!scheduled.has(n.i)&&n.t<=pos).forEach(n=>{scheduled.add(n.i);tone(n.m,n.d*spb(),.35)})}
-    if(mode==='listen'||inGameMusic){notes.filter(n=>!scheduled.has(n.i)&&n.t<=pos).forEach(n=>{scheduled.add(n.i);if(pos-n.t<.25)tone(n.m,n.d*spb(),n.v??1)})}
-    if(pos>=total()&&inGameMusic){pos=0;scheduled.clear()}
+    if(mode==='listen'){notes.filter(n=>!scheduled.has(n.i)&&n.t<=pos).forEach(n=>{scheduled.add(n.i);if(pos-n.t<.25)tone(n.m,n.d*spb(),n.v??1)})}
     if(pos>=total()){setPlaying(false);pos=total();toast(mode==='learn'?'Браво! 🎉 Мелодия выучена':'Конец 🎶')}
   }
   // highlight & lane

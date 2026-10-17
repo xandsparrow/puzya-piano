@@ -71,7 +71,7 @@ function draw(){cx.save();if(S.shake>0)cx.translate((Math.random()-.5)*12*S.shak
   for(const o of far)if(o.z+(o.t==='pillar'?.9:0)>S.z+ZP||o.t==='hole')drawObs(o);
   drawHero();for(const o of far)if(!(o.z+(o.t==='pillar'?.9:0)>S.z+ZP||o.t==='hole'))drawObs(o);cx.restore();drawHUD()}
 function loop(now){if(!active)return;const dt=Math.min(.05,(now-last)/1000||0);last=now;step(dt);draw();raf=requestAnimationFrame(loop)}
-function music(on){try{if(on){timbre='piano';if(!playing)setPlaying(true)}else if(playing)setPlaying(false)}catch(e){}}
+function music(on){try{if(typeof bgm67==='function')bgm67(on);else if(window.bgm67)window.bgm67(on)}catch(e){}}
 function start(){audio();reset();if(S.music)music(true)}
 // ---- input
 const bind=(id,a)=>{const e=document.getElementById(id);e.addEventListener('pointerdown',ev=>{ev.preventDefault();act(a)})};
